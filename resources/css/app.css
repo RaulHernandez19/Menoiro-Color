@@ -2,8 +2,100 @@
 
 @source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
 @source '../../storage/framework/views/*.php';
+@source '../js/**/*.{js,jsx}';
 
 @theme {
-    --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
+    --font-sans: var(--font-space-grotesk), ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
         'Segoe UI Symbol', 'Noto Color Emoji';
+    --font-mono: var(--font-jetbrains-mono), ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+
+    /* Paleta "Lumina" */
+    --color-void: #0b0c10;
+    --color-panel: #1f2029;
+    --color-panel-soft: #16171f;
+    --color-electric: #7b5cff;
+    --color-electric-soft: #a28dff;
+
+    --shadow-glow: 0 0 0 1px rgb(123 92 255 / 0.35), 0 0 32px -4px rgb(123 92 255 / 0.55);
+    --shadow-glow-lg: 0 0 0 1px rgb(123 92 255 / 0.5), 0 0 60px -6px rgb(123 92 255 / 0.7);
+
+    --animate-float: float 7s ease-in-out infinite;
+    --animate-pop: pop 1.4s cubic-bezier(0.2, 0.9, 0.3, 1.2) both;
+    --animate-rise: rise 0.55s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+
+    @keyframes rise {
+        from {
+            opacity: 0;
+            transform: translateY(14px) scale(0.97);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+        }
+    }
+
+    @keyframes float {
+        0%,
+        100% {
+            transform: translateY(0);
+        }
+        50% {
+            transform: translateY(-10px);
+        }
+    }
+
+    @keyframes pop {
+        0% {
+            opacity: 0;
+            transform: translateY(4px) scale(0.9);
+        }
+        15%,
+        80% {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+        }
+        100% {
+            opacity: 0;
+            transform: translateY(-2px) scale(0.98);
+        }
+    }
+}
+
+@layer base {
+    html {
+        color-scheme: dark;
+    }
+
+    body {
+        @apply bg-void font-sans text-zinc-200 antialiased;
+    }
+}
+
+/*
+ * Sliders RGB: el track se pinta inline (gradiente del canal);
+ * aquí solo normalizamos el control nativo y dibujamos el "thumb".
+ */
+@layer components {
+    .channel-slider {
+        @apply h-2 w-full cursor-pointer appearance-none rounded-full outline-none;
+    }
+
+    .channel-slider::-webkit-slider-thumb {
+        @apply size-4 appearance-none rounded-full border-2 border-white bg-void transition-transform;
+        box-shadow: 0 0 0 3px rgb(123 92 255 / 0.35), 0 2px 8px rgb(0 0 0 / 0.6);
+    }
+
+    .channel-slider::-moz-range-thumb {
+        @apply size-4 rounded-full border-2 border-white bg-void;
+        box-shadow: 0 0 0 3px rgb(123 92 255 / 0.35), 0 2px 8px rgb(0 0 0 / 0.6);
+    }
+
+    .channel-slider:hover::-webkit-slider-thumb,
+    .channel-slider:focus-visible::-webkit-slider-thumb {
+        @apply scale-125;
+    }
+
+    .channel-slider:focus-visible {
+        @apply ring-2 ring-electric/60 ring-offset-2 ring-offset-panel;
+    }
 }

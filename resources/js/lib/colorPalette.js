@@ -292,7 +292,7 @@ function shiftHue(hue, targetHue, amount) {
  *  fijos y reducimos C con búsqueda binaria hasta el máximo croma que sí
  *  cabe en pantalla (el mismo enfoque que recomienda CSS Color 4).
  */
-function oklchToDisplayable(lightness, chromaValue, hue) {
+export function oklchToDisplayable(lightness, chromaValue, hue) {
     const candidate = chroma.oklch(lightness, chromaValue, hue);
 
     if (!candidate.clipped()) {

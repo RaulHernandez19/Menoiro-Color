@@ -1,7 +1,12 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useClipboard } from '../hooks/useClipboard';
 import {
+    DEFAULT_OPTIONS,
+    HARMONY_MODES,
+    TEMPERATURES,
     generatePalette,
+    getHarmonyAnchors,
+    getTemperatureSwatches,
     hexToRgb,
     isValidHex,
     normalizeHex,
@@ -12,8 +17,23 @@ import {
 import ChannelSlider from './lumina/ChannelSlider';
 import ColorCard from './lumina/ColorCard';
 import ColorSphere from './lumina/ColorSphere';
+import HarmonyWheel from './lumina/HarmonyWheel';
+import SegmentedControl from './lumina/SegmentedControl';
 
 const DEFAULT_COLOR = '#7B5CFF';
+
+/** Etiquetas de los extremos de la rampa según la temperatura de la luz. */
+const RAMP_LABELS = {
+    warm: ['Luz · cálida', 'Sombra · fría'],
+    neutral: ['Luz · neutra', 'Sombra · neutra'],
+    cool: ['Luz · fría', 'Sombra · cálida'],
+};
+
+const TEMPERATURE_SWATCHES = Object.fromEntries(
+    TEMPERATURES.map((option) => [option.id, getTemperatureSwatches(option.id)]),
+);
+
+const labelOf = (options, id) => options.find((option) => option.id === id)?.label;
 
 /** Orden visual de la rampa de luz → sombra bajo la esfera. */
 const RAMP_ORDER = [
@@ -37,26 +57,44 @@ const CHANNELS = [
 ];
 
 export default function ColorPaletteGenerator() {
-    // Color "confirmado": dispara el recálculo de la paleta de tarjetas.
-    const [baseColor, setBaseColor] = useState(DEFAULT_COLOR);
-    // Color en edición: la esfera lo previsualiza en vivo mientras ajustas.
+    // Ajustes "confirmados" (color + armonía + temperatura): disparan el
+    // recálculo de la paleta de tarjetas al pulsar "Generar Paleta".
+    const [committed, setCommitted] = useState({ color: DEFAULT_COLOR, ...DEFAULT_OPTIONS });
+    // Ajustes en edición: la esfera, la rueda y la rampa los muestran en vivo.
     const [draftColor, setDraftColor] = useState(DEFAULT_COLOR);
+    const [draftHarmony, setDraftHarmony] = useState(DEFAULT_OPTIONS.harmony);
+    const [draftTemperature, setDraftTemperature] = useState(DEFAULT_OPTIONS.temperature);
     // Texto crudo del input HEX (puede ser inválido mientras se escribe).
     const [hexInput, setHexInput] = useState(DEFAULT_COLOR);
-    const [palette, setPalette] = useState(() => generatePalette(DEFAULT_COLOR));
+    const [palette, setPalette] = useState(() => generatePalette(DEFAULT_COLOR, DEFAULT_OPTIONS));
     // Se incrementa en cada "Generar" para re-animar la cuadrícula.
     const [generation, setGeneration] = useState(0);
     const [cssCopied, copyCss] = useClipboard();
 
-    // Recalcular la paleta cada vez que se confirma un nuevo color base.
+    // Recalcular la paleta cada vez que se confirman nuevos ajustes.
     useEffect(() => {
-        setPalette(generatePalette(baseColor));
-    }, [baseColor]);
+        setPalette(generatePalette(committed.color, committed));
+    }, [committed]);
 
-    const draftPalette = useMemo(() => generatePalette(draftColor), [draftColor]);
+    const draftOptions = useMemo(
+        () => ({ harmony: draftHarmony, temperature: draftTemperature }),
+        [draftHarmony, draftTemperature],
+    );
+    const draftPalette = useMemo(() => generatePalette(draftColor, draftOptions), [draftColor, draftOptions]);
     const draftRgb = useMemo(() => hexToRgb(draftColor), [draftColor]);
+    // Anclas de cada modo para el color actual: se dibujan en las pestañas.
+    const harmonyAnchors = useMemo(
+        () =>
+            Object.fromEntries(
+                HARMONY_MODES.map((mode) => [mode.id, getHarmonyAnchors(draftColor, mode.id, draftTemperature)]),
+            ),
+        [draftColor, draftTemperature],
+    );
     const isHexInvalid = !isValidHex(hexInput);
-    const hasPendingChanges = draftColor !== baseColor;
+    const hasPendingChanges =
+        draftColor !== committed.color ||
+        draftHarmony !== committed.harmony ||
+        draftTemperature !== committed.temperature;
 
     const updateDraft = (hex) => {
         setDraftColor(hex);
@@ -64,7 +102,7 @@ export default function ColorPaletteGenerator() {
     };
 
     const commit = (hex) => {
-        setBaseColor(hex);
+        setCommitted({ color: hex, ...draftOptions });
         setGeneration((current) => current + 1);
     };
 
@@ -99,11 +137,11 @@ export default function ColorPaletteGenerator() {
         <div className="relative isolate min-h-screen overflow-hidden">
             <Backdrop color={draftColor} />
 
-            <div className="mx-auto flex max-w-6xl flex-col gap-10 px-4 py-6 sm:px-6 sm:py-8 lg:gap-14">
+            <div className="mx-auto flex max-w-7xl flex-col gap-8 px-4 py-6 sm:px-6 sm:py-8 lg:gap-10">
                 <Header />
 
-                {/* ───────────── Controles + Esfera ───────────── */}
-                <section className="grid items-center gap-8 lg:grid-cols-[minmax(0,26rem)_1fr] lg:gap-12">
+                {/* ───────────── Controles | Esfera + Paleta ───────────── */}
+                <section className="grid items-start gap-8 lg:grid-cols-[minmax(0,24rem)_1fr] lg:gap-10">
                     <form
                         onSubmit={handleSubmit}
                         className="flex flex-col gap-6 rounded-3xl border border-white/10 bg-panel/70 p-5 shadow-2xl shadow-black/40 backdrop-blur-xl sm:p-7"
@@ -202,6 +240,55 @@ export default function ColorPaletteGenerator() {
                             ))}
                         </dl>
 
+                        <div className="h-px bg-linear-to-r from-transparent via-white/10 to-transparent" />
+
+                        <div className="flex flex-col gap-1">
+                            <span className="text-[10px] font-semibold tracking-widest text-electric-soft uppercase">
+                                02 · Armonía y luz
+                            </span>
+                            <h2 className="text-xl font-semibold tracking-tight text-white">Cómo viaja el color</h2>
+                        </div>
+
+                        <SegmentedControl
+                            label="Modo de armonía"
+                            options={HARMONY_MODES}
+                            value={draftHarmony}
+                            onChange={setDraftHarmony}
+                            renderPreview={(option) => (
+                                <span className="flex -space-x-1">
+                                    {harmonyAnchors[option.id].map((anchor, index) => (
+                                        <span
+                                            key={index}
+                                            className="size-2.5 rounded-full ring-1 ring-black/60"
+                                            style={{ backgroundColor: anchor.hex }}
+                                        />
+                                    ))}
+                                </span>
+                            )}
+                        />
+
+                        {draftPalette.harmony.isAchromatic && draftHarmony !== 'monochromatic' && (
+                            <p className="-mt-3 rounded-lg border border-amber-400/20 bg-amber-400/5 px-3 py-2 text-[11px] text-amber-200/80">
+                                Este color es casi gris: no tiene matiz que girar, así que la armonía apenas se nota.
+                            </p>
+                        )}
+
+                        <SegmentedControl
+                            label="Temperatura de la luz"
+                            options={TEMPERATURES}
+                            value={draftTemperature}
+                            onChange={setDraftTemperature}
+                            columns="grid-cols-3"
+                            renderPreview={(option) => (
+                                <span
+                                    className="size-3 rounded-full ring-1 ring-black/60"
+                                    style={{
+                                        background: `linear-gradient(135deg, ${TEMPERATURE_SWATCHES[option.id].light} 50%, ${TEMPERATURE_SWATCHES[option.id].shadow} 50%)`,
+                                    }}
+                                />
+                            )}
+                        />
+
                         <button
                             type="submit"
                             disabled={isHexInvalid}
@@ -221,55 +308,75 @@ export default function ColorPaletteGenerator() {
                         </button>
                     </form>
 
-                    {/* Escenario de la esfera */}
-                    <div className="flex flex-col items-center gap-6">
-                        <ColorSphere palette={draftPalette} />
+                    <div className="flex min-w-0 flex-col gap-6">
+                        {/* Esfera + resumen de la paleta */}
+                        <div className="flex flex-col items-center gap-6 sm:flex-row sm:gap-8">
+                            <ColorSphere palette={draftPalette} className="w-full max-w-[16rem] shrink-0 sm:w-56" />
 
-                        <div className="flex w-full max-w-md flex-col gap-2">
-                            <div className="flex h-3 overflow-hidden rounded-full ring-1 ring-white/10">
-                                {RAMP_ORDER.map((key) => (
-                                    <span
-                                        key={key}
-                                        className="flex-1 transition-colors duration-500"
-                                        style={{ backgroundColor: draftPalette.variations[key].hex }}
-                                        title={draftPalette.variations[key].name}
-                                    />
-                                ))}
-                            </div>
-                            <div className="flex justify-between text-[10px] tracking-widest text-zinc-500 uppercase">
-                                <span>Luz · cálida</span>
-                                <span className="font-mono text-zinc-300">{draftColor}</span>
-                                <span>Sombra · fría</span>
+                            <div className="flex w-full min-w-0 flex-1 flex-col gap-6">
+                                <div className="flex flex-wrap items-end justify-between gap-4">
+                                    <div className="flex flex-col gap-1">
+                                        <span className="text-[10px] font-semibold tracking-widest text-electric-soft uppercase">
+                                            03 · Paleta de iluminación
+                                        </span>
+                                        <h2 className="text-xl font-semibold tracking-tight text-white">
+                                            {cards.length} tonos derivados de{' '}
+                                            <span className="font-mono">{palette.base.hex}</span>
+                                        </h2>
+                                        <span className="text-[11px] tracking-widest text-zinc-500 uppercase">
+                                            {labelOf(HARMONY_MODES, palette.harmony.mode)} · Luz{' '}
+                                            {labelOf(TEMPERATURES, palette.harmony.temperature)?.toLowerCase()}
+                                        </span>
+                                    </div>
+
+                                    <button
+                                        type="button"
+                                        onClick={() => copyCss(paletteToCss(palette))}
+                                        className="inline-flex cursor-pointer items-center gap-2 rounded-full border border-white/10 bg-panel/70 px-4 py-2 text-[11px] font-semibold tracking-widest text-zinc-300 uppercase backdrop-blur transition hover:border-electric/50 hover:text-white hover:shadow-glow"
+                                    >
+                                        {cssCopied ? '¡CSS copiado!' : 'Copiar variables CSS'}
+                                    </button>
+                                </div>
+
+                                {/* Vista previa en vivo: armonía + rampa luz → sombra */}
+                                <div className="flex w-full items-center gap-4">
+                                    <HarmonyWheel anchors={draftPalette.harmony.anchors} />
+
+                                    <div className="flex min-w-0 flex-1 flex-col gap-2">
+                                        <div className="flex items-center justify-between gap-2 text-[10px] tracking-widest uppercase">
+                                            <span className="font-semibold text-zinc-300">
+                                                {labelOf(HARMONY_MODES, draftHarmony)}
+                                            </span>
+                                            <span className="text-zinc-500">
+                                                Luz {labelOf(TEMPERATURES, draftTemperature)?.toLowerCase()}
+                                            </span>
+                                        </div>
+                                        <div className="flex h-3 overflow-hidden rounded-full ring-1 ring-white/10">
+                                            {RAMP_ORDER.map((key) => (
+                                                <span
+                                                    key={key}
+                                                    className="flex-1 transition-colors duration-500"
+                                                    style={{ backgroundColor: draftPalette.variations[key].hex }}
+                                                    title={draftPalette.variations[key].name}
+                                                />
+                                            ))}
+                                        </div>
+                                        <div className="flex justify-between gap-2 text-[10px] tracking-widest text-zinc-500 uppercase">
+                                            <span>{RAMP_LABELS[draftTemperature][0]}</span>
+                                            <span className="font-mono text-zinc-300">{draftColor}</span>
+                                            <span>{RAMP_LABELS[draftTemperature][1]}</span>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
-                    </div>
-                </section>
 
-                {/* ───────────── Cuadrícula de variaciones ───────────── */}
-                <section className="flex flex-col gap-5">
-                    <div className="flex flex-wrap items-end justify-between gap-4">
-                        <div className="flex flex-col gap-1">
-                            <span className="text-[10px] font-semibold tracking-widest text-electric-soft uppercase">
-                                02 · Paleta de iluminación
-                            </span>
-                            <h2 className="text-xl font-semibold tracking-tight text-white">
-                                {cards.length} tonos derivados de <span className="font-mono">{palette.base.hex}</span>
-                            </h2>
+                        {/* Cuadrícula de variaciones */}
+                        <div key={generation} className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-4">
+                            {cards.map((color, index) => (
+                                <ColorCard key={color.key} color={color} index={index} isBase={index === 0} />
+                            ))}
                         </div>
-
-                        <button
-                            type="button"
-                            onClick={() => copyCss(paletteToCss(palette))}
-                            className="inline-flex cursor-pointer items-center gap-2 rounded-full border border-white/10 bg-panel/70 px-4 py-2 text-[11px] font-semibold tracking-widest text-zinc-300 uppercase backdrop-blur transition hover:border-electric/50 hover:text-white hover:shadow-glow"
-                        >
-                            {cssCopied ? '¡CSS copiado!' : 'Copiar variables CSS'}
-                        </button>
-                    </div>
-
-                    <div key={generation} className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-4">
-                        {cards.map((color, index) => (
-                            <ColorCard key={color.key} color={color} index={index} isBase={index === 0} />
-                        ))}
                     </div>
                 </section>
 

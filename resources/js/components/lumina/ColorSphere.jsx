@@ -7,7 +7,7 @@ const withAlpha = (hex, alpha) => chroma(hex).alpha(alpha).css();
  * el gradiente radial recorre Brillo Máximo → Núcleo de Sombra, como
  * una luz cálida situada arriba a la izquierda.
  */
-export default function ColorSphere({ palette }) {
+export default function ColorSphere({ palette, className = 'w-full max-w-[19rem] sm:max-w-[22rem]' }) {
     const { base, variations: v } = palette;
 
     const sphereGradient = `radial-gradient(circle at 34% 28%,
@@ -22,7 +22,7 @@ export default function ColorSphere({ palette }) {
         ${v.shadowCore.hex} 100%)`;
 
     return (
-        <div className="relative grid aspect-square w-full max-w-[19rem] place-items-center sm:max-w-[22rem]">
+        <div className={`relative grid aspect-square place-items-center ${className}`}>
             {/* Halo ambiental del color base */}
             <div
                 className="absolute inset-[12%] rounded-full opacity-60 blur-3xl transition-colors duration-500"

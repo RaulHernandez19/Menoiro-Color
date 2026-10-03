@@ -1,9 +1,6 @@
 const PAGES = [
     { id: 'lighting', label: 'Iluminación', href: '/' },
     { id: 'palettes', label: 'Paletas armónicas', href: '/paletas' },
-    // El módulo de personaje se abre en una pestaña aparte para no
-    // sobrecargar la vista del generador.
-    { id: 'character', label: 'Personaje 70·20·10', href: '/personaje', external: true },
 ];
 
 /** Marco común de todas las ventanas: fondo, encabezado y pie. */
@@ -33,7 +30,7 @@ function Header({ page }) {
                     <span className="size-4 rounded-full bg-[conic-gradient(from_200deg,#7b5cff,#ff8a5c,#ffe08a,#5cc8ff,#7b5cff)] blur-[0.5px]" />
                 </span>
                 <span className="flex flex-col leading-none">
-                    <span className="text-sm font-bold tracking-[0.35em] text-white">MENOIRO COLOR</span>
+                    <span className="text-sm font-bold tracking-[0.35em] text-white">MENOIRO</span>
                     <span className="mt-1 text-[10px] tracking-widest text-zinc-500 uppercase">Light & Shadow Palette Engine</span>
                 </span>
             </a>
@@ -47,19 +44,12 @@ function Header({ page }) {
                             <li key={item.id}>
                                 <a
                                     href={item.href}
-                                    target={item.external && !isActive ? '_blank' : undefined}
-                                    rel={item.external ? 'noopener' : undefined}
                                     aria-current={isActive ? 'page' : undefined}
                                     className={`flex items-center gap-1.5 rounded-full px-4 py-2 text-[11px] font-semibold tracking-widest whitespace-nowrap uppercase transition ${
                                         isActive ? 'bg-electric text-white shadow-glow' : 'text-zinc-400 hover:bg-white/5 hover:text-white'
                                     }`}
                                 >
                                     {item.label}
-                                    {item.external && !isActive && (
-                                        <svg className="size-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" aria-label="(abre en otra pestaña)">
-                                            <path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5" />
-                                        </svg>
-                                    )}
                                 </a>
                             </li>
                         );

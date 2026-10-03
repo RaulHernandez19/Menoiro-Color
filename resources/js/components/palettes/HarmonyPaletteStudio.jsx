@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useClipboard } from '../../hooks/useClipboard';
 import { isValidHex, normalizeHex, randomBaseColor } from '../../lib/colorPalette';
 import { HARMONY_RULES, byLightness, generateHarmonyPalette, mostSaturated, readablePairs } from '../../lib/harmonyPalettes';
-import { HARMONY_PALETTE, LIGHTING_PALETTE, publishShared, readShared } from '../../lib/paletteBus';
+import { LIGHTING_PALETTE, readShared } from '../../lib/paletteBus';
 import AppShell from '../layout/AppShell';
 import SegmentedControl from '../lumina/SegmentedControl';
 
@@ -18,8 +18,6 @@ export default function HarmonyPaletteStudio() {
     const [history, setHistory] = useState([]);
     const [copiedKey, setCopiedKey] = useState(null);
     const [, copy] = useClipboard();
-
-    const rule = HARMONY_RULES.find((item) => item.id === ruleId);
 
     const regenerate = useCallback(
         ({ base = baseHex, rule: nextRule = ruleId, jitter = true } = {}) => {
@@ -78,16 +76,6 @@ export default function HarmonyPaletteStudio() {
         copy(text);
         setCopiedKey(key);
         setTimeout(() => setCopiedKey((current) => (current === key ? null : current)), 1400);
-    };
-
-    const sendToCharacter = () => {
-        publishShared(HARMONY_PALETTE, {
-            rule: ruleId,
-            ruleLabel: rule.label,
-            baseHex,
-            colors: colors.map((color, index) => ({ key: `slot-${index}`, name: `Color ${index + 1}`, hex: color.hex })),
-        });
-        window.open('/personaje', '_blank', 'noopener');
     };
 
     const exportJson = () => {
@@ -236,14 +224,6 @@ export default function HarmonyPaletteStudio() {
                             <h2 className="text-xl font-semibold tracking-tight text-white">Exportar y combinar</h2>
                         </div>
 
-                        <button
-                            type="button"
-                            onClick={sendToCharacter}
-                            className="flex cursor-pointer items-center justify-center gap-2 rounded-xl bg-electric px-5 py-3.5 text-sm font-semibold tracking-widest text-white uppercase shadow-glow transition hover:-translate-y-0.5 hover:shadow-glow-lg"
-                        >
-                            Usar en Personaje 70·20·10 ↗
-                        </button>
-
                         <div className="grid grid-cols-3 gap-2">
                             <button type="button" onClick={() => copyWithFeedback('hex', colors.map((color) => color.hex).join(', '))} className={ghostButton}>
                                 {copiedKey === 'hex' ? '¡Listo!' : 'HEX'}
@@ -324,7 +304,7 @@ function Tips() {
         ['El valor manda', 'Si la paleta no tiene claros, medios y oscuros, la imagen se ve plana aunque los tonos combinen. Por eso cada regla fija una escala de luminosidad.'],
         ['Pocos colores intensos', 'Uno o dos colores saturados y el resto apagados. Si todos gritan, ninguno destaca.'],
         ['Percepción uniforme', 'Calculamos en OKLCH: al girar el tono el brillo percibido no salta (en HSL un amarillo y un azul "iguales" se ven distintos).'],
-        ['Proporción 60-30-10 / 70-20-10', 'Un color domina, otro acompaña y uno acentúa. Llévate la paleta al módulo de Personaje para repartirla.'],
+        ['Proporción 60-30-10 / 70-20-10', 'Un color domina, otro acompaña y uno acentúa: así se reparten las superficies en un diseño equilibrado.'],
     ];
 
     return (

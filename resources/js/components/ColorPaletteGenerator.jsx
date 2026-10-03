@@ -78,7 +78,7 @@ export default function ColorPaletteGenerator() {
         const nextPalette = generatePalette(committed.color, committed);
         setPalette(nextPalette);
 
-        // Comparte la paleta con el módulo de personaje (otra pestaña).
+        // Comparte la paleta con "Paletas armónicas" (otra pestaña).
         publishShared(LIGHTING_PALETTE, {
             harmony: committed.harmony,
             temperature: committed.temperature,

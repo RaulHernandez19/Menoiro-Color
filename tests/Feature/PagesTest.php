@@ -15,7 +15,6 @@ class PagesTest extends TestCase
         return [
             'iluminación' => ['/', 'lighting', 'Menoiro · Generador de paletas'],
             'paletas armónicas' => ['/paletas', 'palettes', 'Menoiro · Paletas armónicas'],
-            'personaje 70-20-10' => ['/personaje', 'character', 'Menoiro · Personaje 70-20-10'],
         ];
     }
 
